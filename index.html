@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Restaurant Chatbot</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        height: 200vh;
+        background-color: rgb(87, 158, 216);
+        /* height: auto; */
+      }
+      h1 {
+        margin: 0 auto;
+        padding: 0;
+        color: paleturquoise;
+        font-size: 25px;
+      }
+      #chat {
+        flex: 1;
+        padding: 10px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+      }
+      #form {
+        background: rgba(0, 0, 0, 0.15);
+        padding: 0.25rem;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        height: 3rem;
+        box-sizing: border-box;
+        backdrop-filter: blur(10px);
+      }
+      #input {
+        border: none;
+        padding: 0 1rem;
+        flex-grow: 1;
+        border-radius: 2rem;
+        margin: 0.25rem;
+      }
+      #input:focus {
+        outline: none;
+      }
+      #form > button {
+        background: #333;
+        border: none;
+        padding: 0 1rem;
+        margin: 0.25rem;
+        border-radius: 3px;
+        outline: none;
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>WELCOME TO ABDULEATS 🍕</h1>
+    <div id="chat"></div>
+    <form id="form" action="">
+      <input
+        type="text"
+        id="input"
+        placeholder="Type a message..."
+        autocomplete="off"
+      />
+      <button>Send</button>
+    </form>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+
+      const chat = document.getElementById("chat");
+      const form = document.getElementById("form");
+      const messageInput = document.getElementById("input");
+
+      socket.on("bot-message", (data) => {
+        addMessage(" Bot", data.message);
+      });
+
+      // socket.on("bot-reply", (data) => {
+      //   handleUserMessage("Bot :", data.message);
+      // });
+
+      form.addEventListener("submit", function sendMessage(e) {
+        e.preventDefault();
+        const message = messageInput.value;
+        if (message.trim() !== "") {
+          addMessage("You", message);
+          socket.emit("user-message", message);
+          messageInput.value = "";
+        }
+      });
+
+      function addMessage(sender, message) {
+        const chat = document.getElementById("chat");
+        const messageElement = document.createElement("div");
+        messageElement.textContent = `${sender}: ${message}`;
+        chat.appendChild(messageElement);
+        window.scrollTo(0, document.body.scrollHeight);
+      }
+
+      const menuItems = ["Pizza", "Burger", "Pasta", "Salad", "Soda"];
+
+      async function handleUserMessage(sender, message) {
+        switch (messageInput.value) {
+          case "1":
+            const menu = menuItems
+              .map((item, index) => `${index + 1}. ${item}`)
+              .join("\n");
+            const messageElement = document.createElement("div");
+            messageElement.textContent = `Please select an item to order:\n${menu}`;
+            chat.appendChild(messageElement);
+            chat.scrollTop = chat.scrollHeight;
+            console.log(messageInput.value + "From here");
+            break;
+        }
+      }
+
+      // function handleUserMessage(message, socket) {
+      //   switch (message.trim()) {
+      //     case "1":
+      //       const menu = menuItems
+      //         .map((item, index) => `${index + 1}. ${item}`)
+      //         .join("\n");
+      //       socket.emit("bot-message", {
+      //         message: `Please select an item to order:\n${menu}`,
+      //       });
+      //       break;
+      //     case "99":
+      //       if (currentOrders[userId]) {
+      //         orderHistory[userId].push(currentOrders[userId]);
+      //         currentOrders[userId] = null;
+      //         socket.emit("bot-message", {
+      //           message: "Order placed. Select 1 to place a new order.",
+      //         });
+      //       } else {
+      //         socket.emit("bot-message", {
+      //           message: "No order to place. Select 1 to place a new order.",
+      //         });
+      //       }
+      //       break;
+      //     case "98":
+      //       if (orderHistory[userId].length > 0) {
+      //         const history = orderHistory[userId]
+      //           .map((order, index) => `${index + 1}. ${order}`)
+      //           .join("\n");
+      //         socket.emit("bot-message", {
+      //           message: `Order history:\n${history}`,
+      //         });
+      //       } else {
+      //         socket.emit("bot-message", { message: "No order history." });
+      //       }
+      //       break;
+      //     case "97":
+      //       if (currentOrders[userId]) {
+      //         socket.emit("bot-message", {
+      //           message: `Current order: ${currentOrders[userId]}`,
+      //         });
+      //       } else {
+      //         socket.emit("bot-message", { message: "No current order." });
+      //       }
+      //       break;
+      //     case "0":
+      //       if (currentOrders[userId]) {
+      //         currentOrders[userId] = null;
+      //         socket.emit("bot-message", {
+      //           message: "Order cancelled. Select 1 to place a new order.",
+      //         });
+      //       } else {
+      //         socket.emit("bot-message", { message: "No order to cancel." });
+      //       }
+      //       break;
+      //     default:
+      //       if (
+      //         !isNaN(msg) &&
+      //         parseInt(msg) > 0 &&
+      //         parseInt(msg) <= menuItems.length
+      //       ) {
+      //         currentOrders[userId] = menuItems[parseInt(msg) - 1];
+      //         socket.emit("bot-message", {
+      //           message: `You have selected ${
+      //             menuItems[parseInt(msg) - 1]
+      //           }. Select 99 to checkout or continue ordering.`,
+      //         });
+      //       } else {
+      //         socket.emit("bot-message", {
+      //           message: "Invalid option. Please try again.",
+      //         });
+      //       }
+      //       break;
+      //   }
+      // }
+    </script>
+  </body>
+</html>
