@@ -212,7 +212,6 @@ app.get("/chat", (req, res) => {
 // }
 
 const PORT = 3000;
-const HOST = "127.0.0.1";
-server.listen(PORT, HOST, () => {
+server.listen(PORT, () => {
   console.log("server running at http://localhost:3000");
 });
