@@ -2,25 +2,38 @@ const express = require("express");
 const { createServer } = require("node:http");
 const { join } = require("node:path");
 const { Server } = require("socket.io");
+const cookieParser = require("cookie-parser");
+const { v4: uuidv4 } = require("uuid");
 
 const app = express();
 const server = createServer(app);
 const io = new Server(server);
 
 app.use(express.static("public"));
+app.use(cookieParser());
 
-let orderHistory = [];
-let currentOrders = [];
+let sessions = {};
+// let orderHistory = [];
+// let currentOrders = [];
 
 io.on("connection", (socket) => {
-  const userId = socket.id;
-  console.log("a user connected", userId);
+  const socketId = socket.id;
+  console.log("a user connected", socketId);
 
   // Initialize session data
-  if (!orderHistory[userId]) {
-    orderHistory[userId] = [];
-    currentOrders[userId] = null;
+
+  if (!sessions[socketId]) {
+    sessions[socketId] = {
+      userId: uuidv4(),
+      orderHistory: [],
+      currentOrders: null,
+    };
   }
+
+  // if (!orderHistory[userId]) {
+  //   orderHistory[userId] = [];
+  //   currentOrders[userId] = null;
+  // }
 
   const message = socket.emit("bot-message", {
     message:
@@ -28,17 +41,23 @@ io.on("connection", (socket) => {
   });
 
   socket.on("user-message", (message) => {
-    handleUserMessage(userId, message, socket);
+    handleUserMessage(socketId, message, socket);
+  });
+
+  socket.on("disconnect", () => {
+    delete sessions[socketId];
+    console.log("A user disconeted!", socketId);
   });
 });
 
 const menuItems = ["Pizza", "Burger", "Pasta", "Salad", "Soda"];
 
-function handleUserMessage(userId, message, socket) {
+function handleUserMessage(socketId, message, socket) {
+  const session = sessions[socketId];
   switch (message) {
     case "1":
       const menu = menuItems
-        .map((item, index) => `${index + 1}. ${item}`)
+        .map((item, index) => ` ${String.fromCharCode(97 + index)}. ${item}`)
         .join("\n");
       socket.emit("bot-message", {
         message: `Please select an item to order:\n${menu}`,
@@ -46,9 +65,9 @@ function handleUserMessage(userId, message, socket) {
       break;
 
     case "99":
-      if (currentOrders[userId]) {
-        orderHistory[userId].push(currentOrders[userId]);
-        currentOrders[userId] = null;
+      if (session.currentOrders) {
+        session.orderHistory.push(session.currentOrders);
+        session.currentOrders = null;
         socket.emit("bot-message", {
           message: "Order placed. Select 1 to place a new order.",
         });
@@ -60,8 +79,8 @@ function handleUserMessage(userId, message, socket) {
       break;
 
     case "98":
-      if (orderHistory[userId].length > 0) {
-        const history = orderHistory[userId]
+      if (session.orderHistory.length > 0) {
+        const history = session.orderHistory
           .map((order, index) => `${index + 1}. ${order}`)
           .join("\n");
         socket.emit("bot-message", { message: `Order history:\n${history}` });
@@ -71,9 +90,9 @@ function handleUserMessage(userId, message, socket) {
       break;
 
     case "97":
-      if (currentOrders[userId]) {
+      if (session.currentOrders) {
         socket.emit("bot-message", {
-          message: `Current order: ${currentOrders[userId]}`,
+          message: `Current order: ${session.currentOrders}`,
         });
       } else {
         socket.emit("bot-message", { message: "No current order." });
@@ -81,8 +100,8 @@ function handleUserMessage(userId, message, socket) {
       break;
 
     case "0":
-      if (currentOrders[userId]) {
-        currentOrders[userId] = null;
+      if (session.currentOrders) {
+        session.currentOrders = null;
         socket.emit("bot-message", {
           message: "Order cancelled. Select 1 to place a new order.",
         });
@@ -92,17 +111,14 @@ function handleUserMessage(userId, message, socket) {
       break;
 
     default:
-      if (
-        !isNaN(message) &&
-        parseInt(message) > 0 &&
-        parseInt(message) <= menuItems.length
-      ) {
-        currentOrders[userId] = menuItems[parseInt(message) - 1];
+      if (message.length === 1 && message >= "a" && message <= "e") {
+        const index = message.charCodeAt(0) - 97;
+        session.currentOrders = menuItems[index];
         socket.emit("bot-message", {
-          message: `You have selected ${
-            menuItems[parseInt(message) - 1]
-          }. Select 99 to checkout or continue ordering.`,
+          message: `You have selected ${menuItems[index]}. Select 99 to checkout or continue ordering.`,
         });
+        console.log(session.orderHistory);
+        console.log(session.orderHistory);
       } else {
         socket.emit("bot-message", {
           message: "Invalid option. Please try again.",

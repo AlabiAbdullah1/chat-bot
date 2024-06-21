@@ -50,13 +50,14 @@
         outline: none;
       }
       #form > button {
-        background: #333;
+        background: rgb(87, 158, 216);
         border: none;
         padding: 0 1rem;
         margin: 0.25rem;
         border-radius: 3px;
         outline: none;
         color: #fff;
+        cursor: pointer;
       }
     </style>
   </head>
@@ -103,7 +104,8 @@
         const messageElement = document.createElement("div");
         messageElement.textContent = `${sender}: ${message}`;
         chat.appendChild(messageElement);
-        window.scrollTo(0, document.body.scrollHeight);
+        // window.scrollTo(0, document.body.scrollHeight);
+        chat.scrollHeight = chat.scrollTop;
       }
 
       const menuItems = ["Pizza", "Burger", "Pasta", "Salad", "Soda"];
